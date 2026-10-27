@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en" class="idle">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="7-3-1">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>7-3-1 Progress Check</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  html { background: #18181b; color: #fff; }
+  body {
+    font: 600 1.25rem/1.3 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  }
+
+  /* One unmistakable colour per phase */
+  html.green  { background: #21b24b; color: #04210d; }
+  html.yellow { background: #facc15; color: #1c1600; }
+  html.orange { background: linear-gradient(var(--top, #ff9f1a), var(--bottom, #f97316)); color: #1c0800; }
+  html.red    { color: #fff; animation: flash .6s ease-in-out infinite alternate; }
+  @keyframes flash { from { background-color: #ff1f1f; } to { background-color: #6b0000; } }
+
+  section {
+    position: fixed; inset: 0; display: flex; flex-direction: column; overflow-y: auto;
+    padding: calc(env(safe-area-inset-top) + 4rem) 1.25rem calc(env(safe-area-inset-bottom) + 1.5rem);
+    text-align: center;
+  }
+  section[hidden] { display: none; }
+  .stack { margin: auto 0; display: flex; flex-direction: column; gap: 1.5rem; }
+
+  h1   { font-size: clamp(3rem, 16vw, 5rem); font-weight: 800; line-height: 1; }
+  .msg { font-size: clamp(2rem, 9.5vw, 3.5rem); font-weight: 800; line-height: 1.12; }
+  #orange .msg { font-size: clamp(1.75rem, 8vw, 3rem); }
+  .sub  { font-size: 1.15rem; font-weight: 500; opacity: .85; }
+  .time { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; opacity: .7; }
+
+  button {
+    font: inherit; font-size: 1.5rem; font-weight: 700; color: #111; background: #fff;
+    width: 100%; min-height: 5.5rem; padding: 1rem 1.25rem; border: 0; border-radius: 1.25rem;
+  }
+  button:active { transform: scale(.98); }
+  #start { background: #21b24b; color: #04210d; }
+  button.plain { background: none; color: inherit; min-height: 3.5rem; font-size: 1.15rem; opacity: .7; }
+
+  #end {
+    position: fixed; z-index: 1; top: calc(env(safe-area-inset-top) + .5rem); right: 1rem;
+    width: auto; min-height: 2.75rem; padding: 0 1.1rem; border-radius: 999px;
+    font-size: 1rem; background: rgba(0, 0, 0, .2); color: inherit;
+  }
+  #warn {
+    position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + .5rem);
+    font-size: .9rem; font-weight: 500; text-align: center; opacity: .75;
+  }
+  html.idle #warn { display: none; }
+
+  #flag .stack { margin: 0; }
+  textarea {
+    font: inherit; font-size: 1.25rem; font-weight: 500; width: 100%; padding: 1rem;
+    border: 0; border-radius: 1rem; resize: none; -webkit-user-select: text; user-select: text;
+  }
+
+  #questions { text-align: left; }
+  #questions h2 { font-size: 1rem; font-weight: 600; opacity: .6; margin-bottom: .5rem; }
+  #qlist { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+  #qlist li { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; border-radius: .9rem; background: #27272a; }
+  #qlist li span { flex: 1; font-weight: 500; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; }
+  #qlist small { display: block; font-size: .85rem; opacity: .55; }
+  #qlist button { width: 2.75rem; min-height: 2.75rem; padding: 0; font-size: 1.25rem; background: #3f3f46; color: #fff; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<section id="idle">
+  <div class="stack">
+    <h1>7-3-1</h1>
+    <p class="sub">Turn it on when you begin a task.</p>
+    <button id="start" data-go="green">Start</button>
+    <div id="questions" hidden>
+      <h2>Flagged questions</h2>
+      <ul id="qlist"></ul>
+    </div>
+  </div>
+</section>
+
+<section id="green" hidden>
+  <div class="stack">
+    <p class="msg">Are you making progress?</p>
+    <p class="time"></p>
+    <p class="sub">Tap anywhere to reset</p>
+  </div>
+</section>
+
+<section id="yellow" hidden>
+  <div class="stack">
+    <p class="msg">Are you making progress?</p>
+    <button data-go="green">Yes</button>
+    <button data-go="orange">I'm not making progress with my current approach</button>
+  </div>
+</section>
+
+<section id="orange" hidden>
+  <div class="stack">
+    <p class="msg">Write down your approach, and any questions you need to ask to continue working.</p>
+    <p class="sub">Physically change your approach: pen and paper, a diagram, a smaller example. Not 3 more minutes of the same thinking.</p>
+    <p class="time"></p>
+  </div>
+</section>
+
+<section id="red" hidden>
+  <div class="stack">
+    <p class="msg">Time to decide</p>
+    <button data-go="green">Continue with new approach</button>
+    <button data-go="flag">Write/flag the question</button>
+  </div>
+</section>
+
+<section id="flag" hidden>
+  <div class="stack">
+    <p class="msg">Flag the question</p>
+    <textarea id="qtext" rows="4" placeholder="What do you need to ask? (optional)"></textarea>
+    <button id="save">Save &amp; move on</button>
+    <button class="plain" data-go="red">Back</button>
+  </div>
+</section>
+
+<button id="end" hidden>End</button>
+<p id="warn" hidden>Screen may sleep. Set Auto-Lock to Never.</p>
+
+<script>
+  const MIN = 60 * 1000;
+  const DURATION = { green: 7 * MIN, orange: 3 * MIN };
+  const NEXT = { green: 'yellow', orange: 'red' };
+  const STATE_KEY = 'p731.state', Q_KEY = 'p731.questions';
+  const root = document.documentElement;
+  const $ = (sel) => document.querySelector(sel);
+
+  function read(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
+  }
+  function write(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  }
+
+  // State is persisted with an absolute end time, so the countdown stays correct
+  // even if iOS suspends or reloads the page while it's in the background.
+  let state = read(STATE_KEY, { phase: 'idle' });
+
+  function go(phase) {
+    state = { phase };
+    if (DURATION[phase]) state.endAt = Date.now() + DURATION[phase];
+    write(STATE_KEY, state);
+    render();
+  }
+
+  function render() {
+    root.className = state.phase;
+    for (const s of document.querySelectorAll('section')) s.hidden = s.id !== state.phase;
+    $('#end').hidden = state.phase === 'idle';
+    if (state.phase === 'idle') renderQuestions();
+    if (state.phase === 'flag') { $('#qtext').value = ''; $('#qtext').focus(); }
+    tick();
+    keepAwake();
+  }
+
+  function tick() {
+    if (!state.endAt) return;
+    const left = state.endAt - Date.now();
+    if (left <= 0) return go(NEXT[state.phase]);
+    const s = Math.ceil(left / 1000);
+    $(`#${state.phase} .time`).textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    if (state.phase === 'orange') shade(1 - left / DURATION.orange);
+  }
+
+  // Orange -> red over the 3-minute intervention
+  const FROM = [[255, 159, 26], [249, 115, 22]], TO = [[232, 40, 30], [185, 16, 24]];
+  const mix = (a, b, p) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * p))})`;
+  function shade(p) {
+    root.style.setProperty('--top', mix(FROM[0], TO[0], p));
+    root.style.setProperty('--bottom', mix(FROM[1], TO[1], p));
+  }
+
+  // Colour is the only cue, so keep the screen on for the whole session.
+  let lock = null, asking = false;
+  async function keepAwake() {
+    const want = state.phase !== 'idle' && document.visibilityState === 'visible';
+    if (!want) {
+      if (lock) { lock.release(); lock = null; }
+      return;
+    }
+    if (lock || asking) return;
+    if (!('wakeLock' in navigator)) { $('#warn').hidden = false; return; }
+    asking = true;
+    try {
+      const sentinel = await navigator.wakeLock.request('screen');
+      sentinel.addEventListener('release', () => { if (lock === sentinel) lock = null; });
+      lock = sentinel;
+      $('#warn').hidden = true;
+      if (state.phase === 'idle') keepAwake();
+    } catch {
+      $('#warn').hidden = false;
+    }
+    asking = false;
+  }
+
+  function renderQuestions() {
+    const qs = read(Q_KEY, []);
+    $('#questions').hidden = !qs.length;
+    $('#qlist').replaceChildren(...qs.map((q, i) => {
+      const li = document.createElement('li');
+      const text = document.createElement('span');
+      const when = document.createElement('small');
+      const del = document.createElement('button');
+      text.textContent = q.text;
+      when.textContent = new Date(q.at).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+      text.append(when);
+      del.textContent = '×';
+      del.dataset.del = i;
+      del.setAttribute('aria-label', 'Remove');
+      li.append(text, del);
+      return li;
+    }));
+  }
+
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-go]');
+    if (target) go(target.dataset.go);
+    const del = e.target.closest('[data-del]');
+    if (del) {
+      const qs = read(Q_KEY, []);
+      qs.splice(Number(del.dataset.del), 1);
+      write(Q_KEY, qs);
+      renderQuestions();
+    }
+  });
+  $('#green').addEventListener('pointerdown', () => go('green'));
+  $('#end').addEventListener('click', () => { if (confirm('End this task?')) go('idle'); });
+  $('#save').addEventListener('click', () => {
+    const qs = read(Q_KEY, []);
+    qs.push({ text: $('#qtext').value.trim() || 'Flagged question (no text)', at: Date.now() });
+    write(Q_KEY, qs);
+    go('green');
+  });
+
+  // Catch up immediately when returning from the background, and retry the wake lock on any touch.
+  document.addEventListener('visibilitychange', () => { tick(); keepAwake(); });
+  window.addEventListener('pageshow', () => { tick(); keepAwake(); });
+  document.addEventListener('pointerdown', keepAwake, true);
+  setInterval(tick, 250);
+
+  render();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>

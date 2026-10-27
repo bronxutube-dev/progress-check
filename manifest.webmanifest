@@ -1,0 +1,13 @@
+{
+  "name": "7-3-1 Progress Check",
+  "short_name": "7-3-1",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#18181b",
+  "theme_color": "#18181b",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
