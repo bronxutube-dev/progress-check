@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="5-3-1">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>7-3-1 Progress Check</title>
+<title>5-3-1 Progress Check</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
@@ -33,6 +33,7 @@
     text-align: center;
   }
   section[hidden] { display: none; }
+  #green { touch-action: pan-y; }
   .stack { margin: auto 0; display: flex; flex-direction: column; gap: 1.5rem; }
 
   h1   { font-size: clamp(3rem, 16vw, 5rem); font-weight: 800; line-height: 1; }
@@ -79,7 +80,7 @@
 
 <section id="idle">
   <div class="stack">
-    <h1>7-3-1</h1>
+    <h1>5-3-1</h1>
     <p class="sub">Turn it on when you begin a task.</p>
     <button id="start" data-go="green">Start</button>
     <div id="questions" hidden>
@@ -93,7 +94,7 @@
   <div class="stack">
     <p class="msg">Are you making progress?</p>
     <p class="time"></p>
-    <p class="sub">Tap anywhere to reset</p>
+    <p class="sub">Stuck? Swipe right to change your approach</p>
   </div>
 </section>
 
@@ -239,7 +240,19 @@
       renderQuestions();
     }
   });
-  $('#green').addEventListener('pointerdown', () => go('green'));
+
+  // Swipe right on the green screen to skip straight to the intervention. Taps do nothing,
+  // so neither timer can be reset. Vertical drags stay with the browser (touch-action: pan-y).
+  let swipe = null;
+  $('#green').addEventListener('pointerdown', (e) => { if (e.isPrimary) swipe = { x: e.clientX, y: e.clientY }; });
+  $('#green').addEventListener('pointercancel', () => { swipe = null; });
+  $('#green').addEventListener('pointerup', (e) => {
+    if (!swipe || !e.isPrimary) return;
+    const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+    swipe = null;
+    if (state.phase === 'green' && dx >= 80 && dx > 2 * Math.abs(dy)) go('orange');
+  });
+
   $('#end').addEventListener('click', () => { if (confirm('End this task?')) go('idle'); });
   $('#save').addEventListener('click', () => {
     const qs = read(Q_KEY, []);
