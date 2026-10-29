@@ -95,6 +95,7 @@
     <p class="msg">Are you making progress?</p>
     <p class="time"></p>
     <p class="sub">Stuck? Swipe right to change your approach</p>
+    <button data-go="green">Next Question</button>
   </div>
 </section>
 
@@ -111,6 +112,7 @@
     <p class="msg">Write down your approach, and any questions you need to ask to continue working.</p>
     <p class="sub">Physically change your approach: pen and paper, a diagram, a smaller example. Not 3 more minutes of the same thinking.</p>
     <p class="time"></p>
+    <button data-go="green">Skip to Next Question</button>
   </div>
 </section>
 
@@ -231,7 +233,8 @@
 
   document.addEventListener('click', (e) => {
     const target = e.target.closest('[data-go]');
-    if (target) go(target.dataset.go);
+    // Ignore a click landing on a screen that just closed (e.g. a swipe that started on Next Question).
+    if (target && !target.closest('section').hidden) go(target.dataset.go);
     const del = e.target.closest('[data-del]');
     if (del) {
       const qs = read(Q_KEY, []);
@@ -241,8 +244,8 @@
     }
   });
 
-  // Swipe right on the green screen to skip straight to the intervention. Taps do nothing,
-  // so neither timer can be reset. Vertical drags stay with the browser (touch-action: pan-y).
+  // Swipe right on the green screen to skip straight to the intervention. Taps on the screen do
+  // nothing; only Next Question starts a fresh timer. Vertical drags stay with the browser (touch-action: pan-y).
   let swipe = null;
   $('#green').addEventListener('pointerdown', (e) => { if (e.isPrimary) swipe = { x: e.clientX, y: e.clientY }; });
   $('#green').addEventListener('pointercancel', () => { swipe = null; });
